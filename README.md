@@ -15,6 +15,7 @@ An oral-health AI prototype for screening mouth photos, tracking daily follow-up
 - Click any timeline entry to review the previous AI result
 - Reset all follow-up history
 - Generate a doctor summary for dental review
+- Download a patient PDF report when sending a case to the dentist
 - Use an OpenAI vision model through the backend API
 - Fall back to local demo triage when no API key is configured
 
@@ -94,6 +95,7 @@ The score shown in the app is a risk/urgency score: higher means more concerning
 - คลิกประวัติแต่ละวันเพื่อดูผลตรวจ AI รอบก่อนหน้า
 - Reset การติดตามทั้งหมดได้
 - สร้าง doctor summary สำหรับส่งต่อให้ทันตแพทย์
+- ดาวน์โหลดรายงาน PDF ลงเครื่องคนไข้เมื่อกดส่งเคสให้หมอ
 - ใช้ OpenAI vision model ผ่าน backend API
 - มีโหมด demo fallback เมื่อไม่ได้ตั้งค่า API key
 

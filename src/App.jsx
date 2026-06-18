@@ -71,8 +71,11 @@ function App() {
   const [entries, setEntries] = useState(loadSavedEntries)
   const [selectedId, setSelectedId] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+  const [sendStatus, setSendStatus] = useState('')
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
+  const reportRef = useRef(null)
 
   const hasAnalysis = Boolean(analysis)
   const visibleResult = analysis || emptyResult
@@ -123,6 +126,7 @@ function App() {
     setPreview('')
     setFile(null)
     setError('')
+    setSendStatus('')
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -175,13 +179,68 @@ function App() {
     }
   }
 
-  function markSent() {
+  function buildPdfFilename(entry) {
+    const safeName = patient.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'patient'
+    return `oral-ai-report-${safeName}-${entry.date}.pdf`
+  }
+
+  async function saveCasePdf(entry) {
+    if (!reportRef.current) return
+
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ])
+    const canvas = await html2canvas(reportRef.current, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+    })
+    const imageData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const margin = 8
+    const imageWidth = pageWidth - margin * 2
+    const imageHeight = (canvas.height * imageWidth) / canvas.width
+    let heightLeft = imageHeight
+    let position = margin
+
+    pdf.addImage(imageData, 'PNG', margin, position, imageWidth, imageHeight)
+    heightLeft -= pageHeight - margin * 2
+
+    while (heightLeft > 0) {
+      position = heightLeft - imageHeight + margin
+      pdf.addPage()
+      pdf.addImage(imageData, 'PNG', margin, position, imageWidth, imageHeight)
+      heightLeft -= pageHeight - margin * 2
+    }
+
+    pdf.save(buildPdfFilename(entry))
+  }
+
+  async function markSent() {
     if (!selectedEntry) return
-    const nextEntries = entries.map((entry) =>
-      entry.id === selectedEntry.id ? { ...entry, sent: true } : entry,
-    )
-    setEntries(nextEntries)
-    localStorage.setItem('oral-ai-entries', JSON.stringify(nextEntries))
+    setIsSending(true)
+    setSendStatus('กำลังอัปโหลดเคสให้หมอ...')
+
+    try {
+      await wait(700)
+      setSendStatus('กำลังสร้างไฟล์ PDF สำหรับคนไข้...')
+      await saveCasePdf(selectedEntry)
+      await wait(500)
+
+      const nextEntries = entries.map((entry) =>
+        entry.id === selectedEntry.id ? { ...entry, sent: true } : entry,
+      )
+      setEntries(nextEntries)
+      localStorage.setItem('oral-ai-entries', JSON.stringify(nextEntries))
+      setSendStatus('ส่งเคสให้หมอแล้ว และบันทึก PDF ลงเครื่องแล้ว')
+    } catch {
+      setSendStatus('สร้าง PDF หรือส่งเคสไม่สำเร็จ กรุณาลองใหม่')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -421,10 +480,16 @@ function App() {
                 </div>
               </dl>
               <blockquote>{selectedEntry.result.doctorSummary}</blockquote>
-              <button className="send-button" type="button" onClick={markSent}>
-                <Send size={18} />
-                {selectedEntry.sent ? 'ส่งให้หมอแล้ว' : 'ส่งเคสให้หมอ'}
+              <button className="send-button" type="button" onClick={markSent} disabled={isSending}>
+                {isSending ? <Clock size={18} /> : <Send size={18} />}
+                {isSending ? 'กำลังอัปโหลดส่งหมอ...' : selectedEntry.sent ? 'ส่งให้หมอแล้ว / ดาวน์โหลด PDF' : 'ส่งเคสให้หมอ + เซฟ PDF'}
               </button>
+              {sendStatus && (
+                <div className={isSending ? 'send-status sending' : 'send-status'}>
+                  {isSending && <span className="mini-spinner" />}
+                  <span>{sendStatus}</span>
+                </div>
+              )}
             </>
           ) : (
             <div className="doctor-empty">
@@ -435,6 +500,68 @@ function App() {
           )}
         </aside>
       </section>
+
+      {selectedEntry && (
+        <section ref={reportRef} className="pdf-report" aria-hidden="true">
+          <header>
+            <div>
+              <span>Oral AI Follow-up</span>
+              <h2>รายงานผลคัดกรองช่องปาก</h2>
+            </div>
+            <strong>สำหรับทันตแพทย์</strong>
+          </header>
+
+          <div className="pdf-grid">
+            <div>
+              <h3>ข้อมูลคนไข้</h3>
+              <p><b>ชื่อ:</b> {patient.name}</p>
+              <p><b>อายุ:</b> {patient.age} ปี</p>
+              <p><b>เบอร์โทร:</b> {patient.phone}</p>
+              <p><b>วันที่ตรวจ:</b> {selectedEntry.date}</p>
+            </div>
+            <div>
+              <h3>ผลสแกน AI</h3>
+              <p><b>โรค/ภาวะที่สงสัย:</b> {selectedEntry.result.condition}</p>
+              <p><b>คะแนนความเสี่ยง:</b> {selectedEntry.result.riskScore}/100</p>
+              <p><b>ความรุนแรง:</b> {selectedEntry.result.severity}</p>
+              <p><b>ควรพบหมอ:</b> {selectedEntry.result.timeframe}</p>
+            </div>
+          </div>
+
+          <div className="pdf-photo-row">
+            <img src={selectedEntry.image} alt="" />
+            <div>
+              <h3>อาการร่วมและหมายเหตุ</h3>
+              <p><b>อาการร่วม:</b> {(selectedEntry.symptoms || symptoms).join(', ') || 'ไม่ได้ระบุ'}</p>
+              <p><b>หมายเหตุ:</b> {selectedEntry.notes || notes || 'ไม่มี'}</p>
+              <p><b>แนวโน้มเรื้อรัง:</b> {selectedEntry.result.chronicity}</p>
+            </div>
+          </div>
+
+          <div className="pdf-section">
+            <h3>หลักฐานที่ AI ใช้พิจารณา</h3>
+            <ul>
+              {selectedEntry.result.evidence.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+
+          <div className="pdf-section">
+            <h3>คำแนะนำต่อไป</h3>
+            <ul>
+              {selectedEntry.result.nextSteps.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+
+          <div className="pdf-summary">
+            <h3>Doctor Summary</h3>
+            <p>{selectedEntry.result.doctorSummary}</p>
+          </div>
+
+          <footer>
+            {selectedEntry.result.caveat} รายงานนี้สร้างจากระบบ AI เพื่อช่วยคัดกรองเบื้องต้น
+          </footer>
+        </section>
+      )}
     </main>
   )
 }
