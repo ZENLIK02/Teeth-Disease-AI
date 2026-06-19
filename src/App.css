@@ -16,7 +16,7 @@
 
 .app-shell {
   min-height: 100svh;
-  padding: 42px;
+  padding: 24px;
   color: var(--ink);
   background:
     linear-gradient(135deg, rgba(15, 109, 104, 0.1) 0 20%, transparent 20% 100%),
@@ -45,7 +45,7 @@
 }
 
 .topbar {
-  max-width: 2160px;
+  max-width: 2560px;
   margin: 0 auto 34px;
   padding: 34px;
   display: flex;
@@ -124,11 +124,11 @@ h1 {
 }
 
 .workspace-grid {
-  max-width: 2160px;
+  max-width: 2560px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(540px, 680px) minmax(820px, 1.25fr) minmax(500px, 640px);
-  gap: 34px;
+  grid-template-columns: minmax(560px, 720px) minmax(900px, 1.45fr) minmax(520px, 680px);
+  gap: 26px;
   align-items: start;
 }
 
