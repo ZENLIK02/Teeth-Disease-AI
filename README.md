@@ -8,7 +8,7 @@ An oral-health AI prototype for screening mouth photos, tracking daily follow-up
 
 ### Features
 
-- Upload or capture an oral/mouth photo
+- Upload or capture 2-8 oral/mouth photos for multi-angle analysis
 - Select symptoms and add duration notes
 - Analyze risk, severity, chronicity, and suggested dental-care timing
 - Save daily follow-up history in `localStorage`
@@ -88,7 +88,7 @@ The score shown in the app is a risk/urgency score: higher means more concerning
 
 ### ความสามารถหลัก
 
-- อัปโหลดหรือถ่ายรูปช่องปาก
+- อัปโหลดหรือถ่ายรูปช่องปาก 2-8 รูปเพื่อให้ AI วิเคราะห์หลายมุม
 - เลือกอาการร่วมและบันทึกระยะเวลา
 - วิเคราะห์ความเสี่ยง ความรุนแรง แนวโน้มเรื้อรัง และช่วงเวลาที่ควรพบทันตแพทย์
 - เก็บประวัติการติดตามรายวันใน `localStorage`

@@ -15,7 +15,7 @@
 
 .app-shell {
   min-height: 100svh;
-  padding: 24px;
+  padding: 34px;
   color: var(--ink);
   background:
     linear-gradient(135deg, rgba(15, 109, 104, 0.1) 0 20%, transparent 20% 100%),
@@ -44,9 +44,9 @@
 }
 
 .topbar {
-  max-width: 1540px;
-  margin: 0 auto 18px;
-  padding: 18px;
+  max-width: 1840px;
+  margin: 0 auto 26px;
+  padding: 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -76,8 +76,8 @@
 }
 
 .brand-mark {
-  width: 54px;
-  height: 54px;
+  width: 72px;
+  height: 72px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -97,21 +97,21 @@ p {
 }
 
 h1 {
-  font-size: clamp(28px, 3vw, 42px);
+  font-size: clamp(38px, 4vw, 62px);
   line-height: 1;
   letter-spacing: 0;
 }
 
 .brand-lockup p {
-  margin-top: 7px;
+  margin-top: 10px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 20px;
 }
 
 .status-pill {
   gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 54px;
+  padding: 0 20px;
   border: 1px solid rgba(21, 151, 131, 0.28);
   border-radius: 999px;
   background: linear-gradient(180deg, #ffffff, #effaf7);
@@ -121,11 +121,11 @@ h1 {
 }
 
 .workspace-grid {
-  max-width: 1540px;
+  max-width: 1840px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(310px, 390px) minmax(460px, 1fr) minmax(300px, 380px);
-  gap: 18px;
+  grid-template-columns: minmax(420px, 520px) minmax(620px, 1fr) minmax(390px, 500px);
+  gap: 26px;
   align-items: start;
 }
 
@@ -143,11 +143,11 @@ h1 {
 
 .intake-panel,
 .doctor-panel {
-  padding: 20px;
+  padding: 30px;
 }
 
 .analysis-panel {
-  padding: 22px;
+  padding: 32px;
 }
 
 .section-title {
@@ -167,7 +167,7 @@ h1 {
 .section-title h2,
 .section-title h3 {
   color: var(--ink);
-  font-size: 18px;
+  font-size: 24px;
   line-height: 1.2;
   letter-spacing: 0;
 }
@@ -182,7 +182,7 @@ label {
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -197,7 +197,7 @@ textarea {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.78);
   color: var(--ink);
-  padding: 11px 12px;
+  padding: 15px 16px;
   outline: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
@@ -215,8 +215,8 @@ textarea:focus {
 }
 
 .upload-zone {
-  height: 285px;
-  margin: 18px 0 12px;
+  height: 430px;
+  margin: 24px 0 14px;
   border: 1px dashed rgba(15, 109, 104, 0.45);
   border-radius: 8px;
   overflow: hidden;
@@ -234,7 +234,8 @@ textarea:focus {
 
 .upload-zone img,
 .doctor-photo img,
-.timeline-item img {
+.timeline-item img,
+.preview-grid img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -250,7 +251,7 @@ textarea:focus {
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 30px;
   text-align: center;
   color: var(--teal);
@@ -258,13 +259,65 @@ textarea:focus {
 
 .upload-placeholder strong {
   color: var(--ink);
-  font-size: 21px;
+  font-size: 34px;
 }
 
 .upload-placeholder span {
-  max-width: 240px;
+  max-width: 360px;
   color: var(--muted);
   line-height: 1.45;
+  font-size: 18px;
+}
+
+.preview-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+}
+
+.preview-grid figure {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #dcebec;
+}
+
+.preview-grid figcaption {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  min-width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(16, 32, 42, 0.72);
+  color: white;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.photo-count-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(21, 151, 131, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.photo-count-bar span {
+  color: var(--teal);
 }
 
 .upload-actions {
@@ -274,8 +327,8 @@ textarea:focus {
 button {
   border: 0;
   border-radius: 8px;
-  min-height: 43px;
-  padding: 0 14px;
+  min-height: 56px;
+  padding: 0 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -284,6 +337,7 @@ button {
   background: linear-gradient(135deg, var(--teal), #0b585b);
   cursor: pointer;
   font-weight: 800;
+  font-size: 17px;
   transition:
     transform 150ms ease,
     box-shadow 150ms ease,
@@ -318,7 +372,7 @@ button.secondary {
 }
 
 .symptom-grid button {
-  min-height: 40px;
+  min-height: 52px;
   background: rgba(247, 251, 250, 0.92);
   color: #36515c;
   border: 1px solid rgba(123, 157, 160, 0.28);
@@ -338,13 +392,13 @@ button.secondary {
 .analyze-button,
 .send-button {
   width: 100%;
-  margin-top: 15px;
+  margin-top: 20px;
   background: linear-gradient(135deg, var(--coral), #c8463a);
   box-shadow: 0 18px 30px rgba(222, 94, 80, 0.18);
 }
 
 .send-button {
-  min-height: 48px;
+  min-height: 60px;
 }
 
 .error-text {
@@ -393,7 +447,7 @@ button.secondary {
 }
 
 .scan-animation h2 {
-  font-size: 24px;
+  font-size: 30px;
   line-height: 1.15;
   letter-spacing: 0;
 }
@@ -422,10 +476,10 @@ button.secondary {
 
 .risk-band {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 128px;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 176px;
+  gap: 28px;
   align-items: center;
-  padding: 22px;
+  padding: 34px;
   border-radius: 8px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(242, 250, 249, 0.88)),
@@ -449,8 +503,8 @@ button.secondary {
 }
 
 .risk-band h2 {
-  margin: 7px 0 9px;
-  font-size: clamp(28px, 3vw, 42px);
+  margin: 9px 0 13px;
+  font-size: clamp(40px, 4vw, 64px);
   line-height: 1.04;
   letter-spacing: 0;
 }
@@ -468,7 +522,7 @@ blockquote,
 .risk-meter,
 .pending-score {
   aspect-ratio: 1;
-  min-width: 120px;
+  min-width: 170px;
   display: grid;
   place-content: center;
   justify-items: center;
@@ -478,7 +532,7 @@ blockquote,
 }
 
 .risk-meter {
-  border: 10px solid #7fc7ad;
+  border: 13px solid #7fc7ad;
   box-shadow: 0 16px 34px rgba(30, 75, 82, 0.12);
 }
 
@@ -491,7 +545,7 @@ blockquote,
 }
 
 .risk-meter strong {
-  font-size: 38px;
+  font-size: 52px;
   line-height: 1;
 }
 
@@ -503,13 +557,13 @@ blockquote,
 }
 
 .risk-meter small {
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .risk-meter em {
-  max-width: 88px;
+  max-width: 112px;
   margin-top: 4px;
-  font-size: 10px;
+  font-size: 12px;
   font-style: normal;
   line-height: 1.2;
 }
@@ -523,7 +577,7 @@ blockquote,
 
 .pending-score span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1.3;
 }
@@ -540,8 +594,8 @@ blockquote,
 }
 
 .metric {
-  min-height: 116px;
-  padding: 16px;
+  min-height: 148px;
+  padding: 22px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -550,7 +604,7 @@ blockquote,
 .metric span {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
   margin-bottom: 8px;
 }
@@ -558,6 +612,7 @@ blockquote,
 .metric strong {
   color: var(--ink);
   line-height: 1.35;
+  font-size: 20px;
 }
 
 .metric.urgent {
@@ -571,10 +626,10 @@ blockquote,
 }
 
 .two-column > div {
-  min-height: 150px;
+  min-height: 190px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 17px;
+  padding: 24px;
   background: rgba(255, 255, 255, 0.68);
 }
 
@@ -582,6 +637,7 @@ blockquote,
   margin: 0;
   padding-left: 20px;
   line-height: 1.55;
+  font-size: 18px;
 }
 
 .check-list li + li {
@@ -590,7 +646,7 @@ blockquote,
 
 .medical-caveat {
   margin-top: 16px;
-  padding: 13px 15px;
+  padding: 18px 20px;
   border-radius: 8px;
   background: linear-gradient(180deg, #fff9ea, #fff4d6);
   border: 1px solid rgba(231, 185, 93, 0.48);
@@ -634,9 +690,9 @@ blockquote,
 }
 
 .timeline-item {
-  min-height: 100px;
+  min-height: 128px;
   display: grid;
-  grid-template-columns: 74px 1fr 34px;
+  grid-template-columns: 98px 1fr 42px;
   gap: 10px;
   align-items: center;
   text-align: left;
@@ -653,7 +709,7 @@ blockquote,
 }
 
 .timeline-item img {
-  height: 80px;
+  height: 102px;
   border-radius: 8px;
 }
 
@@ -663,13 +719,22 @@ blockquote,
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
   margin-top: 3px;
 }
 
 .timeline-item b {
   justify-self: end;
   color: var(--coral);
+  font-size: 20px;
+}
+
+.timeline-item small {
+  display: block;
+  margin-top: 4px;
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .empty-timeline,
@@ -684,7 +749,11 @@ blockquote,
 }
 
 .doctor-photo {
-  aspect-ratio: 4 / 3;
+  min-height: 280px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  aspect-ratio: auto;
   border-radius: 8px;
   overflow: hidden;
   background: #dcebec;
@@ -700,7 +769,7 @@ blockquote,
 
 .summary-list div {
   display: grid;
-  grid-template-columns: 98px 1fr;
+  grid-template-columns: 116px 1fr;
   gap: 8px;
 }
 
@@ -721,6 +790,7 @@ blockquote {
   background: rgba(244, 250, 249, 0.86);
   border-radius: 0 8px 8px 0;
   line-height: 1.55;
+  font-size: 17px;
 }
 
 .send-status {
@@ -838,9 +908,27 @@ blockquote {
   margin: 4px 0;
 }
 
+.pdf-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pdf-photo-grid figure {
+  margin: 0;
+  position: relative;
+}
+
+.pdf-photo-grid figcaption {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .pdf-photo-row img {
   width: 100%;
-  height: 260px;
+  height: 124px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #d6e4e4;
@@ -908,7 +996,7 @@ blockquote {
 
 @media (max-width: 1220px) {
   .workspace-grid {
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: minmax(380px, 480px) 1fr;
   }
 
   .doctor-panel {
@@ -945,8 +1033,8 @@ blockquote {
 
   .risk-meter,
   .pending-score {
-    width: 126px;
-    min-width: 126px;
+    width: 170px;
+    min-width: 170px;
   }
 
   .timeline-header {
@@ -967,6 +1055,11 @@ blockquote {
   .upload-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .preview-grid,
+  .doctor-photo {
+    grid-template-columns: 1fr;
   }
 
   .summary-list div {

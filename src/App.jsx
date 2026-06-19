@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  Images,
   RotateCcw,
   Send,
   ShieldCheck,
@@ -31,14 +32,16 @@ const emptyResult = {
   chronicity: 'ระบบจะแสดงแนวโน้มหลังวิเคราะห์รูป',
   shouldSeeDentist: false,
   timeframe: 'ยังไม่มีคำแนะนำ',
-  explanation: 'อัปโหลดหรือถ่ายรูปช่องปากก่อน ระบบจึงจะแสดงผลคัดกรองและ score เพื่อไม่ให้คนไข้สับสนจากข้อมูลตัวอย่าง',
-  evidence: ['ยังไม่มีภาพสำหรับวิเคราะห์'],
-  nextSteps: ['ถ่ายภาพให้เห็นตำแหน่งเดิมในแสงสว่าง', 'ใส่อาการร่วมและระยะเวลาก่อนกดวิเคราะห์'],
+  explanation: 'อัปโหลดหรือถ่ายรูปช่องปาก 2-8 รูปก่อน ระบบจึงจะแสดงผลคัดกรองและ score เพื่อไม่ให้คนไข้สับสนจากข้อมูลตัวอย่าง',
+  evidence: ['ยังไม่มีภาพอย่างน้อย 2 รูปสำหรับวิเคราะห์หลายมุม'],
+  nextSteps: ['ถ่ายภาพให้เห็นตำแหน่งเดิมในแสงสว่างอย่างน้อย 2 รูป', 'ใส่อาการร่วมและระยะเวลาก่อนกดวิเคราะห์'],
   doctorSummary: 'ยังไม่มีผลวิเคราะห์',
   caveat: 'ผล AI เป็นการคัดกรอง ไม่ใช่การวินิจฉัยแทนทันตแพทย์',
 }
 
 const ANALYSIS_DELAY_MS = 2200
+const MIN_PHOTOS = 2
+const MAX_PHOTOS = 8
 
 function wait(ms) {
   return new Promise((resolve) => {
@@ -65,8 +68,8 @@ function App() {
   const [patient, setPatient] = useState({ name: 'คุณใหม่', age: '32', phone: '080-000-0000' })
   const [symptoms, setSymptoms] = useState(['เจ็บหรือแสบ'])
   const [notes, setNotes] = useState('เริ่มเจ็บบริเวณกระพุ้งแก้มด้านซ้าย 3 วัน')
-  const [preview, setPreview] = useState('')
-  const [file, setFile] = useState(null)
+  const [previews, setPreviews] = useState([])
+  const [files, setFiles] = useState([])
   const [analysis, setAnalysis] = useState(null)
   const [entries, setEntries] = useState(loadSavedEntries)
   const [selectedId, setSelectedId] = useState(null)
@@ -84,6 +87,8 @@ function App() {
     [entries, selectedId],
   )
   const tone = scoreTone(analysis?.riskScore || 0)
+  const selectedImages = selectedEntry?.images || (selectedEntry?.image ? [selectedEntry.image] : [])
+  const previewCount = previews.length
 
   function updatePatient(field, value) {
     setPatient((current) => ({ ...current, [field]: value }))
@@ -96,24 +101,30 @@ function App() {
   }
 
   function handleFileChange(event) {
-    const nextFile = event.target.files?.[0]
-    if (!nextFile) return
-    setFile(nextFile)
+    const nextFiles = Array.from(event.target.files || []).slice(0, MAX_PHOTOS)
+    if (nextFiles.length === 0) return
+    setFiles(nextFiles)
     setAnalysis(null)
-    setError('')
+    setSendStatus('')
+    setError(nextFiles.length < MIN_PHOTOS ? `กรุณาเลือกรูปอย่างน้อย ${MIN_PHOTOS} รูปเพื่อให้ AI เทียบหลายมุม` : '')
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      setPreview(String(reader.result || ''))
-    }
-    reader.readAsDataURL(nextFile)
+    Promise.all(
+      nextFiles.map(
+        (nextFile) =>
+          new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(String(reader.result || ''))
+            reader.readAsDataURL(nextFile)
+          }),
+      ),
+    ).then((nextPreviews) => setPreviews(nextPreviews))
   }
 
   function selectTimelineEntry(entry) {
     setSelectedId(entry.id)
     setAnalysis(entry.result)
-    setPreview(entry.image)
-    setFile(null)
+    setPreviews(entry.images || (entry.image ? [entry.image] : []))
+    setFiles([])
     setError('')
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -123,16 +134,16 @@ function App() {
     setEntries([])
     setSelectedId(null)
     setAnalysis(null)
-    setPreview('')
-    setFile(null)
+    setPreviews([])
+    setFiles([])
     setError('')
     setSendStatus('')
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   async function analyzePhoto() {
-    if (!file) {
-      setError('กรุณาอัปโหลดหรือถ่ายรูปก่อนวิเคราะห์')
+    if (files.length < MIN_PHOTOS) {
+      setError(`กรุณาอัปโหลดรูปอย่างน้อย ${MIN_PHOTOS} รูป และไม่เกิน ${MAX_PHOTOS} รูป เพื่อให้ AI วิเคราะห์หลายมุม`)
       return
     }
 
@@ -143,7 +154,7 @@ function App() {
 
     try {
       const formData = new FormData()
-      formData.append('photo', file)
+      files.forEach((photo) => formData.append('photos', photo))
       formData.append('symptoms', JSON.stringify(symptoms))
       formData.append('notes', notes)
 
@@ -158,7 +169,9 @@ function App() {
         id: Date.now(),
         day: `Day ${entries.length + 1}`,
         date: new Date().toISOString().slice(0, 10),
-        image: preview,
+        image: previews[0],
+        images: previews,
+        photoCount: previews.length,
         sent: false,
         symptoms,
         notes,
@@ -280,32 +293,44 @@ function App() {
             </label>
           </div>
 
-          <div className={preview ? 'upload-zone has-photo' : 'upload-zone'} onClick={() => fileInputRef.current?.click()}>
-            {preview ? (
-              <img src={preview} alt="รูปช่องปากที่อัปโหลด" />
+          <div className={previewCount ? 'upload-zone has-photo multi-photo' : 'upload-zone'} onClick={() => fileInputRef.current?.click()}>
+            {previewCount ? (
+              <div className="preview-grid">
+                {previews.map((preview, index) => (
+                  <figure key={`${preview.slice(0, 40)}-${index}`}>
+                    <img src={preview} alt={`รูปช่องปากที่อัปโหลด ${index + 1}`} />
+                    <figcaption>{index + 1}</figcaption>
+                  </figure>
+                ))}
+              </div>
             ) : (
               <div className="upload-placeholder">
-                <Camera size={42} />
-                <strong>ยังไม่มีรูป</strong>
-                <span>ถ่ายหรืออัปโหลดรูปช่องปากเพื่อเริ่มตรวจ</span>
+                <Images size={58} />
+                <strong>อัปโหลด 2-8 รูป</strong>
+                <span>ถ่ายหลายมุม เช่น ฟันหน้า ด้านซ้าย ด้านขวา เหงือก หรือบริเวณแผล เพื่อให้ AI เทียบข้อมูลแม่นขึ้น</span>
               </div>
             )}
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               capture="environment"
               onChange={handleFileChange}
             />
           </div>
+          <div className="photo-count-bar">
+            <span>{previewCount}/{MAX_PHOTOS} รูป</span>
+            <strong>{previewCount < MIN_PHOTOS ? `ต้องมีอย่างน้อย ${MIN_PHOTOS} รูป` : 'พร้อมให้ AI วิเคราะห์หลายมุม'}</strong>
+          </div>
           <div className="upload-actions">
             <button type="button" onClick={() => fileInputRef.current?.click()}>
               <Camera size={18} />
-              ถ่าย/เลือกรูป
+              เลือกรูปหลายใบ
             </button>
             <button type="button" className="secondary" onClick={() => fileInputRef.current?.click()}>
               <Upload size={18} />
-              อัปโหลด
+              อัปโหลด 2-8 รูป
             </button>
           </div>
 
@@ -330,7 +355,7 @@ function App() {
           {error && <p className="error-text">{error}</p>}
           <button className="analyze-button" type="button" onClick={analyzePhoto} disabled={isAnalyzing}>
             {isAnalyzing ? <Clock size={19} /> : <ClipboardList size={19} />}
-            {isAnalyzing ? 'กำลังตรวจภาพ...' : 'ตรวจและบันทึกวันนี้'}
+            {isAnalyzing ? 'กำลังตรวจหลายภาพ...' : 'ตรวจหลายภาพและบันทึกวันนี้'}
           </button>
         </aside>
 
@@ -342,8 +367,8 @@ function App() {
                 <Camera size={42} />
               </div>
               <div>
-                <h2>AI กำลังตรวจช่องปาก</h2>
-                <p>กำลังอ่านภาพ ประเมินรอยโรค และสร้างสรุปสำหรับหมอ ใช้เวลาประมาณ 2.2 วินาที</p>
+                <h2>AI กำลังตรวจหลายมุม</h2>
+                <p>กำลังอ่านภาพ {previewCount || files.length} รูป เทียบตำแหน่งรอยโรค และสร้างสรุปสำหรับหมอ ใช้เวลาประมาณ 2.2 วินาที</p>
                 <div className="progress-track"><span /></div>
               </div>
             </div>
@@ -420,7 +445,7 @@ function App() {
               <h3>ติดตามรายวัน</h3>
             </div>
             <div className="timeline-tools">
-              <span>{entries.length} ภาพ</span>
+              <span>{entries.length} ครั้ง</span>
               <button type="button" className="reset-button" onClick={resetTracking} disabled={isAnalyzing}>
                 <RotateCcw size={16} />
                 Reset
@@ -440,6 +465,7 @@ function App() {
                   <div>
                     <strong>{entry.day}</strong>
                     <span>{entry.result.condition}</span>
+                    <small>{entry.photoCount || entry.images?.length || 1} รูป</small>
                   </div>
                   <b>{entry.result.riskScore}</b>
                 </button>
@@ -459,7 +485,9 @@ function App() {
           {selectedEntry ? (
             <>
               <div className="doctor-photo">
-                <img src={selectedEntry.image} alt="รูปที่เลือกสำหรับส่งให้หมอ" />
+                {(selectedImages.length ? selectedImages : [selectedEntry.image]).map((image, index) => (
+                  <img key={`${image?.slice?.(0, 40) || 'image'}-${index}`} src={image} alt={`รูปที่เลือกสำหรับส่งให้หมอ ${index + 1}`} />
+                ))}
               </div>
               <dl className="summary-list">
                 <div>
@@ -469,6 +497,10 @@ function App() {
                 <div>
                   <dt>วันที่</dt>
                   <dd>{selectedEntry.date}</dd>
+                </div>
+                <div>
+                  <dt>จำนวนรูป</dt>
+                  <dd>{selectedImages.length || selectedEntry.photoCount || 1} รูป</dd>
                 </div>
                 <div>
                   <dt>ผลคัดกรอง</dt>
@@ -518,6 +550,7 @@ function App() {
               <p><b>อายุ:</b> {patient.age} ปี</p>
               <p><b>เบอร์โทร:</b> {patient.phone}</p>
               <p><b>วันที่ตรวจ:</b> {selectedEntry.date}</p>
+              <p><b>จำนวนรูป:</b> {selectedImages.length || selectedEntry.photoCount || 1} รูป</p>
             </div>
             <div>
               <h3>ผลสแกน AI</h3>
@@ -529,7 +562,14 @@ function App() {
           </div>
 
           <div className="pdf-photo-row">
-            <img src={selectedEntry.image} alt="" />
+            <div className="pdf-photo-grid">
+              {(selectedImages.length ? selectedImages : [selectedEntry.image]).map((image, index) => (
+                <figure key={`${image?.slice?.(0, 40) || 'pdf-image'}-${index}`}>
+                  <img src={image} alt="" />
+                  <figcaption>ภาพที่ {index + 1}</figcaption>
+                </figure>
+              ))}
+            </div>
             <div>
               <h3>อาการร่วมและหมายเหตุ</h3>
               <p><b>อาการร่วม:</b> {(selectedEntry.symptoms || symptoms).join(', ') || 'ไม่ได้ระบุ'}</p>

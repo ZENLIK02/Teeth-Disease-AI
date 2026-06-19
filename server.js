@@ -9,7 +9,10 @@ import { dirname, resolve } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app = express()
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } })
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024, files: 8 },
+})
 const port = Number(process.env.PORT || 5173)
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -128,8 +131,9 @@ function normalizeTriageResult(result) {
   }
 }
 
-function pickMockCondition(symptoms, notes, fileName) {
-  const text = `${symptoms.join(' ')} ${notes} ${fileName}`.toLowerCase()
+function pickMockCondition(symptoms, notes, fileNames) {
+  const names = Array.isArray(fileNames) ? fileNames.join(' ') : fileNames
+  const text = `${symptoms.join(' ')} ${notes} ${names}`.toLowerCase()
 
   if (/white|red|patch|ขาว|แดง|ไม่หาย|ชา|ก้อน|บุหรี่|หมาก/.test(text)) {
     return conditions[3]
@@ -146,15 +150,16 @@ function pickMockCondition(symptoms, notes, fileName) {
   return conditions[1]
 }
 
-function mockAnalyze({ symptoms, notes, file }) {
-  const picked = pickMockCondition(symptoms, notes, file?.originalname || '')
+function mockAnalyze({ symptoms, notes, files }) {
+  const picked = pickMockCondition(symptoms, notes, files.map((file) => file.originalname))
   const hasLongDuration = /14|สองสัปดาห์|2 สัปดาห์|นาน|ไม่หาย/.test(notes)
+  const multiImageBoost = files.length >= 4 ? 4 : files.length >= 2 ? 2 : 0
   const shouldSeeDentist = picked.urgent || hasLongDuration || picked.score >= 63
 
   return {
     condition: picked.label,
     severity: hasLongDuration && picked.key === 'ulcer' ? 'ปานกลางถึงสูง' : picked.severity,
-    riskScore: Math.min(95, picked.score + (hasLongDuration ? 10 : 0)),
+    riskScore: Math.min(95, picked.score + (hasLongDuration ? 10 : 0) + multiImageBoost),
     chronicity: picked.chronicity,
     shouldSeeDentist,
     timeframe: picked.urgent
@@ -163,7 +168,7 @@ function mockAnalyze({ symptoms, notes, file }) {
         ? 'ภายใน 1-2 สัปดาห์'
         : 'ติดตามอาการทุกวัน 7 วัน',
     explanation:
-      'ระบบประเมินจากรูปที่ส่งมา ประวัติอาการ และรูปแบบสัญญาณที่พบบ่อยในช่องปาก ผลนี้เป็นการคัดกรองเพื่อช่วยตัดสินใจ ไม่ใช่การวินิจฉัยสุดท้าย',
+      `ระบบประเมินจากรูป ${files.length} ภาพร่วมกับประวัติอาการ และรูปแบบสัญญาณที่พบบ่อยในช่องปาก ผลนี้เป็นการคัดกรองเพื่อช่วยตัดสินใจ ไม่ใช่การวินิจฉัยสุดท้าย`,
     evidence: picked.signs,
     nextSteps: [
       picked.advice,
@@ -175,13 +180,16 @@ function mockAnalyze({ symptoms, notes, file }) {
   }
 }
 
-async function liveAnalyze({ symptoms, notes, file }) {
+async function liveAnalyze({ symptoms, notes, files }) {
   if (!process.env.OPENAI_API_KEY) {
-    return mockAnalyze({ symptoms, notes, file })
+    return mockAnalyze({ symptoms, notes, files })
   }
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  const imageUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
+  const imageInputs = files.map((file) => ({
+    type: 'input_image',
+    image_url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+  }))
   const response = await client.responses.create({
     model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
     input: [
@@ -201,9 +209,9 @@ async function liveAnalyze({ symptoms, notes, file }) {
         content: [
           {
             type: 'input_text',
-            text: `Analyze this oral photo for screening. Symptoms: ${symptoms.join(', ') || 'none'}. Notes: ${notes || 'none'}. Calibrate riskScore as urgency/risk: higher means more concerning and faster dental review.`,
+            text: `Analyze these ${files.length} oral photos together for screening. Compare all angles/images as one case to improve triage accuracy. Symptoms: ${symptoms.join(', ') || 'none'}. Notes: ${notes || 'none'}. Calibrate riskScore as urgency/risk: higher means more concerning and faster dental review. Mention when the multiple images show consistent findings or uncertainty.`,
           },
-          { type: 'input_image', image_url: imageUrl },
+          ...imageInputs,
         ],
       },
     ],
@@ -220,18 +228,20 @@ async function liveAnalyze({ symptoms, notes, file }) {
   return normalizeTriageResult(JSON.parse(response.output_text))
 }
 
-app.post('/api/analyze', upload.single('photo'), async (req, res) => {
+app.post('/api/analyze', upload.array('photos', 8), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'photo is required' })
+    const files = req.files || []
+    if (files.length < 2 || files.length > 8) {
+      return res.status(400).json({ error: '2_to_8_photos_required' })
     }
 
     const symptoms = JSON.parse(req.body.symptoms || '[]')
     const notes = req.body.notes || ''
-    const result = await liveAnalyze({ symptoms, notes, file: req.file })
+    const result = await liveAnalyze({ symptoms, notes, files })
 
     res.json({
       ...result,
+      photoCount: files.length,
       model: process.env.OPENAI_API_KEY ? process.env.OPENAI_MODEL || 'gpt-4.1-mini' : 'local-demo-triage',
       analyzedAt: new Date().toISOString(),
     })
