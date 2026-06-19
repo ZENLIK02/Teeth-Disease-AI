@@ -45,7 +45,7 @@
 }
 
 .topbar {
-  max-width: 1840px;
+  max-width: 2160px;
   margin: 0 auto 34px;
   padding: 34px;
   display: flex;
@@ -124,10 +124,10 @@ h1 {
 }
 
 .workspace-grid {
-  max-width: 1840px;
+  max-width: 2160px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(500px, 600px) minmax(700px, 1fr) minmax(470px, 560px);
+  grid-template-columns: minmax(540px, 680px) minmax(820px, 1.25fr) minmax(500px, 640px);
   gap: 34px;
   align-items: start;
 }
@@ -1010,13 +1010,19 @@ blockquote {
   }
 }
 
-@media (max-width: 1220px) {
+@media (max-width: 1520px) {
   .workspace-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(500px, 0.92fr) minmax(680px, 1.35fr);
   }
 
   .doctor-panel {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1180px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
   }
 }
 
