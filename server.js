@@ -19,6 +19,10 @@ const isProduction = process.env.NODE_ENV === 'production'
 app.use(cors())
 app.use(express.json({ limit: '12mb' }))
 
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, service: 'oral-ai-prototype' })
+})
+
 const conditions = [
   {
     key: 'gingivitis',
