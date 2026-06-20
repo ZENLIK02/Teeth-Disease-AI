@@ -104,8 +104,8 @@ async function analyze(request, env) {
   const form = await request.formData()
   const files = form.getAll('photos').filter((item) => item && typeof item.arrayBuffer === 'function')
 
-  if (files.length < 2 || files.length > 8) {
-    return json({ error: '2_to_8_photos_required' }, { status: 400 })
+  if (files.length < 1 || files.length > 8) {
+    return json({ error: '1_to_8_photos_required' }, { status: 400 })
   }
 
   const symptoms = JSON.parse(form.get('symptoms') || '[]')

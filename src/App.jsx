@@ -35,18 +35,18 @@ const emptyResult = {
   chronicity: 'ระบบจะแสดงแนวโน้มหลังวิเคราะห์รูป',
   shouldSeeDentist: false,
   timeframe: 'ยังไม่มีคำแนะนำ',
-  explanation: 'อัปโหลดหรือถ่ายรูปช่องปาก 2-8 รูปก่อน ระบบจึงจะแสดงผลคัดกรองและ score เพื่อไม่ให้คนไข้สับสนจากข้อมูลตัวอย่าง',
+  explanation: 'อัปโหลดหรือถ่ายรูปช่องปาก 1-8 รูปก่อน ระบบจึงจะแสดงผลคัดกรองและ score เพื่อไม่ให้คนไข้สับสนจากข้อมูลตัวอย่าง',
   lesionSizeCm: 0,
   lesionSizeConfidence: 'low',
   lesionSizeNote: 'หลังตรวจรูป ระบบจะแสดงขนาดแผลโดยประมาณ หากต้องการความแม่นยำควรถ่ายคู่กับไม้บรรทัดหรือวัตถุอ้างอิง',
-  evidence: ['ยังไม่มีภาพอย่างน้อย 2 รูปสำหรับวิเคราะห์หลายมุม'],
-  nextSteps: ['ถ่ายภาพให้เห็นตำแหน่งเดิมในแสงสว่างอย่างน้อย 2 รูป', 'ใส่อาการร่วมและระยะเวลาก่อนกดวิเคราะห์'],
+  evidence: ['ยังไม่มีภาพสำหรับวิเคราะห์ช่องปาก'],
+  nextSteps: ['ถ่ายภาพให้เห็นตำแหน่งเดิมในแสงสว่างอย่างน้อย 1 รูป', 'ใส่อาการร่วมและระยะเวลาก่อนกดวิเคราะห์'],
   doctorSummary: 'ยังไม่มีผลวิเคราะห์',
   caveat: 'ผล AI เป็นการคัดกรอง ไม่ใช่การวินิจฉัยแทนทันตแพทย์',
 }
 
 const ANALYSIS_DELAY_MS = 2200
-const MIN_PHOTOS = 2
+const MIN_PHOTOS = 1
 const MAX_PHOTOS = 8
 
 function wait(ms) {
@@ -175,7 +175,7 @@ function App() {
     setFiles(nextFiles)
     setAnalysis(null)
     setSendStatus('')
-    setError(nextFiles.length < MIN_PHOTOS ? `กรุณาเลือกรูปอย่างน้อย ${MIN_PHOTOS} รูปเพื่อให้ AI เทียบหลายมุม` : '')
+    setError(nextFiles.length < MIN_PHOTOS ? `กรุณาเลือกรูปอย่างน้อย ${MIN_PHOTOS} รูปเพื่อให้ AI ตรวจช่องปาก` : '')
 
     Promise.all(
       nextFiles.map(
@@ -212,7 +212,7 @@ function App() {
 
   async function analyzePhoto() {
     if (files.length < MIN_PHOTOS) {
-      setError(`กรุณาอัปโหลดรูปอย่างน้อย ${MIN_PHOTOS} รูป และไม่เกิน ${MAX_PHOTOS} รูป เพื่อให้ AI วิเคราะห์หลายมุม`)
+      setError(`กรุณาอัปโหลดรูปอย่างน้อย ${MIN_PHOTOS} รูป และไม่เกิน ${MAX_PHOTOS} รูป เพื่อให้ AI วิเคราะห์ช่องปาก`)
       return
     }
 
@@ -375,7 +375,7 @@ function App() {
             ) : (
               <div className="upload-placeholder">
                 <Images size={58} />
-                <strong>อัปโหลด 2-8 รูป</strong>
+                <strong>อัปโหลด 1-8 รูป</strong>
                 <span>ถ่ายหลายมุม เช่น ฟันหน้า ด้านซ้าย ด้านขวา เหงือก หรือบริเวณแผล เพื่อให้ AI เทียบข้อมูลแม่นขึ้น</span>
               </div>
             )}
@@ -390,7 +390,7 @@ function App() {
           </div>
           <div className="photo-count-bar">
             <span>{previewCount}/{MAX_PHOTOS} รูป</span>
-            <strong>{previewCount < MIN_PHOTOS ? `ต้องมีอย่างน้อย ${MIN_PHOTOS} รูป` : 'พร้อมให้ AI วิเคราะห์หลายมุม'}</strong>
+            <strong>{previewCount < MIN_PHOTOS ? `ต้องมีอย่างน้อย ${MIN_PHOTOS} รูป` : 'พร้อมให้ AI วิเคราะห์ช่องปาก'}</strong>
           </div>
           <div className="upload-actions">
             <button type="button" onClick={() => fileInputRef.current?.click()}>
@@ -399,7 +399,7 @@ function App() {
             </button>
             <button type="button" className="secondary" onClick={() => fileInputRef.current?.click()}>
               <Upload size={18} />
-              อัปโหลด 2-8 รูป
+              อัปโหลด 1-8 รูป
             </button>
           </div>
 

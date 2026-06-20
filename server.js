@@ -253,8 +253,8 @@ async function liveAnalyze({ symptoms, notes, files }) {
 app.post('/api/analyze', upload.array('photos', 8), async (req, res) => {
   try {
     const files = req.files || []
-    if (files.length < 2 || files.length > 8) {
-      return res.status(400).json({ error: '2_to_8_photos_required' })
+    if (files.length < 1 || files.length > 8) {
+      return res.status(400).json({ error: '1_to_8_photos_required' })
     }
 
     const symptoms = JSON.parse(req.body.symptoms || '[]')
