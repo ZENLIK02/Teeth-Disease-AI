@@ -518,6 +518,14 @@ button.secondary {
   letter-spacing: 0;
 }
 
+.condition-detail {
+  max-width: 980px;
+  color: var(--muted);
+  font-size: 26px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
 .risk-band p,
 .medical-caveat,
 .check-list,
@@ -731,10 +739,23 @@ blockquote,
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   color: var(--muted);
   font-size: 19px;
   margin-top: 3px;
+}
+
+.timeline-item em {
+  display: -webkit-box;
+  margin-top: 4px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--muted);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 1.3;
 }
 
 .timeline-item b {
@@ -796,6 +817,24 @@ blockquote,
 .summary-list dd {
   margin: 0;
   line-height: 1.45;
+}
+
+.summary-list dd strong,
+.summary-list dd span {
+  display: block;
+}
+
+.summary-list dd strong {
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.summary-list dd span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 19px;
+  line-height: 1.35;
 }
 
 blockquote {

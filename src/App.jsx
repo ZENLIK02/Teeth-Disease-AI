@@ -64,6 +64,32 @@ function loadSavedEntries() {
   }
 }
 
+function conditionTitle(result) {
+  const text = result?.condition || ''
+  const normalized = text.trim()
+  const combined = `${normalized} ${(result?.evidence || []).join(' ')}`.toLowerCase()
+
+  if (!normalized) return 'รอรูปตรวจช่องปาก'
+  if (normalized.length <= 34) return normalized
+  if (/รอยขาว|รอยแดง|ขาว\/แดง|white|red patch|leukoplakia|erythroplakia|ไม่หาย|ก้อน|ชา/.test(combined)) {
+    return 'รอยโรคช่องปากที่ควรตรวจ'
+  }
+  if (/เหงือก|gingivitis|gum|เลือดออก|บวม/.test(combined)) return 'สงสัยเหงือกอักเสบ'
+  if (/ฟันผุ|caries|cavity|เสียวฟัน|คราบ/.test(combined)) return 'สงสัยฟันผุ'
+  if (/แผล|ulcer|ร้อนใน/.test(combined)) return 'สงสัยแผลในช่องปาก'
+
+  return normalized.split(/[,.，。:：;；\n]/)[0].slice(0, 34)
+}
+
+function conditionDetail(result) {
+  const title = conditionTitle(result)
+  const condition = result?.condition || ''
+  const explanation = result?.explanation || ''
+
+  if (!condition || condition === title) return explanation
+  return `${condition} ${explanation}`.trim()
+}
+
 function App() {
   const [patient, setPatient] = useState({ name: 'คุณใหม่', age: '32', phone: '080-000-0000' })
   const [symptoms, setSymptoms] = useState(['เจ็บหรือแสบ'])
@@ -89,6 +115,8 @@ function App() {
   const tone = scoreTone(analysis?.riskScore || 0)
   const selectedImages = selectedEntry?.images || (selectedEntry?.image ? [selectedEntry.image] : [])
   const previewCount = previews.length
+  const visibleConditionTitle = conditionTitle(visibleResult)
+  const visibleConditionDetail = conditionDetail(visibleResult)
 
   function updatePatient(field, value) {
     setPatient((current) => ({ ...current, [field]: value }))
@@ -377,8 +405,8 @@ function App() {
           <div className={hasAnalysis ? 'risk-band' : 'risk-band pending'}>
             <div>
               <span className="eyebrow">AI triage</span>
-              <h2>{visibleResult.condition}</h2>
-              <p>{visibleResult.explanation}</p>
+              <h2>{visibleConditionTitle}</h2>
+              <p className="condition-detail">{visibleConditionDetail}</p>
             </div>
             {hasAnalysis ? (
               <div className={`risk-meter ${tone}`}>
@@ -464,7 +492,8 @@ function App() {
                   <img src={entry.image} alt={`รูปช่องปาก ${entry.day}`} />
                   <div>
                     <strong>{entry.day}</strong>
-                    <span>{entry.result.condition}</span>
+                    <span>{conditionTitle(entry.result)}</span>
+                    {conditionDetail(entry.result) && <em>{conditionDetail(entry.result)}</em>}
                     <small>{entry.photoCount || entry.images?.length || 1} รูป</small>
                   </div>
                   <b>{entry.result.riskScore}</b>
@@ -504,7 +533,10 @@ function App() {
                 </div>
                 <div>
                   <dt>ผลคัดกรอง</dt>
-                  <dd>{selectedEntry.result.condition}</dd>
+                  <dd>
+                    <strong>{conditionTitle(selectedEntry.result)}</strong>
+                    <span>{conditionDetail(selectedEntry.result)}</span>
+                  </dd>
                 </div>
                 <div>
                   <dt>ความเร่งด่วน</dt>
@@ -554,7 +586,8 @@ function App() {
             </div>
             <div>
               <h3>ผลสแกน AI</h3>
-              <p><b>โรค/ภาวะที่สงสัย:</b> {selectedEntry.result.condition}</p>
+              <p><b>โรค/ภาวะที่สงสัย:</b> {conditionTitle(selectedEntry.result)}</p>
+              <p><b>รายละเอียด:</b> {conditionDetail(selectedEntry.result)}</p>
               <p><b>คะแนนความเสี่ยง:</b> {selectedEntry.result.riskScore}/100</p>
               <p><b>ความรุนแรง:</b> {selectedEntry.result.severity}</p>
               <p><b>ควรพบหมอ:</b> {selectedEntry.result.timeframe}</p>
