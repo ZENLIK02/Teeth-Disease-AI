@@ -9,6 +9,9 @@ const triageSchema = {
     shouldSeeDentist: { type: 'boolean' },
     timeframe: { type: 'string' },
     explanation: { type: 'string' },
+    lesionSizeCm: { type: 'number' },
+    lesionSizeConfidence: { type: 'string' },
+    lesionSizeNote: { type: 'string' },
     evidence: { type: 'array', items: { type: 'string' } },
     nextSteps: { type: 'array', items: { type: 'string' } },
     doctorSummary: { type: 'string' },
@@ -22,6 +25,9 @@ const triageSchema = {
     'shouldSeeDentist',
     'timeframe',
     'explanation',
+    'lesionSizeCm',
+    'lesionSizeConfidence',
+    'lesionSizeNote',
     'evidence',
     'nextSteps',
     'doctorSummary',
@@ -33,6 +39,9 @@ const demoResult = {
   condition: 'สงสัยเหงือกอักเสบ',
   severity: 'ปานกลาง',
   riskScore: 58,
+  lesionSizeCm: 0.8,
+  lesionSizeConfidence: 'low',
+  lesionSizeNote: 'Approximate demo estimate. For better centimeter accuracy, include a ruler or known-size reference in the photo.',
   chronicity: 'อาจเป็นซ้ำหรือเรื้อรังได้หากมีคราบหินปูนหรือเลือดออกต่อเนื่อง',
   shouldSeeDentist: true,
   timeframe: 'ควรนัดทันตแพทย์ภายใน 1-2 สัปดาห์',
@@ -68,6 +77,13 @@ function normalize(result) {
     shouldSeeDentist: Boolean(result.shouldSeeDentist),
     timeframe: result.timeframe || 'ควรปรึกษาทันตแพทย์เมื่อมีอาการผิดปกติ',
     explanation: result.explanation || 'AI ไม่สามารถยืนยันโรคได้จากรูปเพียงอย่างเดียว',
+    lesionSizeCm: Number.isFinite(Number(result.lesionSizeCm))
+      ? Math.max(0, Number(Number(result.lesionSizeCm).toFixed(2)))
+      : 0,
+    lesionSizeConfidence: result.lesionSizeConfidence || 'low',
+    lesionSizeNote:
+      result.lesionSizeNote ||
+      'Approximate visual estimate only. Add a ruler or known-size reference in the photo for better centimeter accuracy.',
     evidence: Array.isArray(result.evidence) ? result.evidence.slice(0, 5) : [],
     nextSteps: Array.isArray(result.nextSteps) ? result.nextSteps.slice(0, 5) : [],
     doctorSummary: result.doctorSummary || 'ไม่มีข้อมูลสรุปเพิ่มเติม',
@@ -131,6 +147,7 @@ async function analyze(request, env) {
             'riskScore is an oral-health risk/urgency score, not model confidence.',
             'condition must be a short disease/condition title only, ideally 2-8 Thai words.',
             'Put longer observations and explanations in explanation, evidence, and doctorSummary.',
+            'Estimate the visible lesion/wound largest diameter in centimeters as lesionSizeCm. If there is no clear lesion, use 0. lesionSizeConfidence must be high, medium, or low. lesionSizeNote must explain that this is approximate and more accurate when a ruler or known-size reference appears in the photo.',
             'Use this calibration: 0-15 normal/no visible concern, 16-35 low concern, 36-60 moderate concern, 61-80 high concern, 81-100 urgent red flags.',
             'Red/white patches, non-healing ulcers, suspicious masses, numbness, spreading swelling, severe pain, rapid growth, or bleeding should not receive a single-digit score.',
           ].join(' '),
@@ -140,7 +157,7 @@ async function analyze(request, env) {
           content: [
             {
               type: 'input_text',
-              text: `Analyze these ${files.length} oral photos together for screening. Symptoms: ${symptoms.join(', ') || 'none'}. Notes: ${notes || 'none'}. Higher riskScore means more urgent dental review.`,
+              text: `Analyze these ${files.length} oral photos together for screening. Symptoms: ${symptoms.join(', ') || 'none'}. Notes: ${notes || 'none'}. Higher riskScore means more urgent dental review. Estimate the largest visible lesion/wound diameter in centimeters when possible and mention uncertainty if there is no scale reference.`,
             },
             ...imageInputs,
           ],

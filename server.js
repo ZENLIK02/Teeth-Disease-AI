@@ -77,6 +77,9 @@ const triageSchema = {
     shouldSeeDentist: { type: 'boolean' },
     timeframe: { type: 'string' },
     explanation: { type: 'string' },
+    lesionSizeCm: { type: 'number' },
+    lesionSizeConfidence: { type: 'string' },
+    lesionSizeNote: { type: 'string' },
     evidence: { type: 'array', items: { type: 'string' } },
     nextSteps: { type: 'array', items: { type: 'string' } },
     doctorSummary: { type: 'string' },
@@ -90,6 +93,9 @@ const triageSchema = {
     'shouldSeeDentist',
     'timeframe',
     'explanation',
+    'lesionSizeCm',
+    'lesionSizeConfidence',
+    'lesionSizeNote',
     'evidence',
     'nextSteps',
     'doctorSummary',
@@ -130,6 +136,13 @@ function normalizeTriageResult(result) {
   return {
     ...result,
     riskScore,
+    lesionSizeCm: Number.isFinite(Number(result.lesionSizeCm))
+      ? Math.max(0, Number(Number(result.lesionSizeCm).toFixed(2)))
+      : 0,
+    lesionSizeConfidence: result.lesionSizeConfidence || 'low',
+    lesionSizeNote:
+      result.lesionSizeNote ||
+      'Approximate visual estimate only. Add a ruler or known-size reference in the photo for better centimeter accuracy.',
     shouldSeeDentist,
     timeframe,
   }
@@ -164,6 +177,9 @@ function mockAnalyze({ symptoms, notes, files }) {
     condition: picked.label,
     severity: hasLongDuration && picked.key === 'ulcer' ? 'ปานกลางถึงสูง' : picked.severity,
     riskScore: Math.min(95, picked.score + (hasLongDuration ? 10 : 0) + multiImageBoost),
+    lesionSizeCm: picked.key === 'ulcer' ? 0.8 : picked.key === 'redWhitePatch' ? 1.4 : 0.4,
+    lesionSizeConfidence: 'low',
+    lesionSizeNote: 'ค่าประมาณจากภาพ demo เท่านั้น ถ้าต้องการวัดเป็นเซนติเมตรแม่นขึ้นควรถ่ายคู่กับไม้บรรทัดหรือวัตถุอ้างอิง',
     chronicity: picked.chronicity,
     shouldSeeDentist,
     timeframe: picked.urgent
@@ -205,6 +221,7 @@ async function liveAnalyze({ symptoms, notes, files }) {
             'Return Thai JSON only and recommend dental care when risk signs appear.',
             'riskScore is an oral-health risk/urgency score, not model confidence.',
             'condition must be a short disease/condition title only, ideally 2-8 Thai words. Put longer observations and explanations in explanation, evidence, and doctorSummary, not in condition.',
+            'Estimate the visible lesion/wound largest diameter in centimeters as lesionSizeCm. If there is no clear lesion, use 0. lesionSizeConfidence must be high, medium, or low. lesionSizeNote must explain that this is approximate and more accurate when a ruler or known-size reference appears in the photo.',
             'Use this calibration: 0-15 = normal/no visible concern, 16-35 = low concern, 36-60 = moderate concern or likely routine dental issue, 61-80 = high concern or should see dentist soon, 81-100 = urgent red flags.',
             'Red/white patches, non-healing ulcers, suspicious masses, numbness, spreading swelling, severe pain, rapid growth, or bleeding should not receive a single-digit score.',
           ].join(' '),
@@ -214,7 +231,7 @@ async function liveAnalyze({ symptoms, notes, files }) {
         content: [
           {
             type: 'input_text',
-            text: `Analyze these ${files.length} oral photos together for screening. Compare all angles/images as one case to improve triage accuracy. Symptoms: ${symptoms.join(', ') || 'none'}. Notes: ${notes || 'none'}. Calibrate riskScore as urgency/risk: higher means more concerning and faster dental review. Mention when the multiple images show consistent findings or uncertainty.`,
+            text: `Analyze these ${files.length} oral photos together for screening. Compare all angles/images as one case to improve triage accuracy. Symptoms: ${symptoms.join(', ') || 'none'}. Notes: ${notes || 'none'}. Calibrate riskScore as urgency/risk: higher means more concerning and faster dental review. Estimate the largest visible lesion/wound diameter in centimeters when possible and mention uncertainty if there is no scale reference. Mention when the multiple images show consistent findings or uncertainty.`,
           },
           ...imageInputs,
         ],

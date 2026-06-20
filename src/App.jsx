@@ -9,11 +9,14 @@ import {
   Clock,
   FileText,
   Images,
+  Ruler,
   RotateCcw,
   Send,
   ShieldCheck,
   Upload,
   User,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react'
 import './App.css'
 
@@ -33,6 +36,9 @@ const emptyResult = {
   shouldSeeDentist: false,
   timeframe: 'ยังไม่มีคำแนะนำ',
   explanation: 'อัปโหลดหรือถ่ายรูปช่องปาก 2-8 รูปก่อน ระบบจึงจะแสดงผลคัดกรองและ score เพื่อไม่ให้คนไข้สับสนจากข้อมูลตัวอย่าง',
+  lesionSizeCm: 0,
+  lesionSizeConfidence: 'low',
+  lesionSizeNote: 'หลังตรวจรูป ระบบจะแสดงขนาดแผลโดยประมาณ หากต้องการความแม่นยำควรถ่ายคู่กับไม้บรรทัดหรือวัตถุอ้างอิง',
   evidence: ['ยังไม่มีภาพอย่างน้อย 2 รูปสำหรับวิเคราะห์หลายมุม'],
   nextSteps: ['ถ่ายภาพให้เห็นตำแหน่งเดิมในแสงสว่างอย่างน้อย 2 รูป', 'ใส่อาการร่วมและระยะเวลาก่อนกดวิเคราะห์'],
   doctorSummary: 'ยังไม่มีผลวิเคราะห์',
@@ -90,6 +96,33 @@ function conditionDetail(result) {
   return `${condition} ${explanation}`.trim()
 }
 
+function lesionSizeText(result) {
+  const size = Number(result?.lesionSizeCm || 0)
+  if (!Number.isFinite(size) || size <= 0) return 'ยังไม่พบขนาดแผลชัดเจน'
+  return `ประมาณ ${size.toFixed(1)} ซม.`
+}
+
+function confidenceText(value) {
+  if (value === 'high') return 'ความมั่นใจสูง'
+  if (value === 'medium') return 'ความมั่นใจปานกลาง'
+  return 'ความมั่นใจต่ำ'
+}
+
+function lesionTrendText(current, previous) {
+  const currentSize = Number(current?.result?.lesionSizeCm || 0)
+  const previousSize = Number(previous?.result?.lesionSizeCm || 0)
+
+  if (!current || !previous || currentSize <= 0 || previousSize <= 0) {
+    return 'ต้องมีผลตรวจอย่างน้อย 2 วัน และเห็นแผลชัดเจนเพื่อเทียบขนาด'
+  }
+
+  const diff = Number((currentSize - previousSize).toFixed(1))
+  if (Math.abs(diff) < 0.1) return `ใกล้เคียงเดิม (${previousSize.toFixed(1)} -> ${currentSize.toFixed(1)} ซม.)`
+  return diff > 0
+    ? `ใหญ่ขึ้นประมาณ ${diff.toFixed(1)} ซม. (${previousSize.toFixed(1)} -> ${currentSize.toFixed(1)} ซม.)`
+    : `เล็กลงประมาณ ${Math.abs(diff).toFixed(1)} ซม. (${previousSize.toFixed(1)} -> ${currentSize.toFixed(1)} ซม.)`
+}
+
 function App() {
   const [patient, setPatient] = useState({ name: 'คุณใหม่', age: '32', phone: '080-000-0000' })
   const [symptoms, setSymptoms] = useState(['เจ็บหรือแสบ'])
@@ -103,6 +136,7 @@ function App() {
   const [isSending, setIsSending] = useState(false)
   const [sendStatus, setSendStatus] = useState('')
   const [error, setError] = useState('')
+  const [compareZoom, setCompareZoom] = useState(1.4)
   const fileInputRef = useRef(null)
   const reportRef = useRef(null)
 
@@ -112,11 +146,18 @@ function App() {
     () => entries.find((entry) => entry.id === selectedId) || entries[0] || null,
     [entries, selectedId],
   )
+  const selectedPreviousEntry = useMemo(() => {
+    if (!selectedEntry) return null
+    const ordered = [...entries].sort((first, second) => first.id - second.id)
+    const index = ordered.findIndex((entry) => entry.id === selectedEntry.id)
+    return index > 0 ? ordered[index - 1] : null
+  }, [entries, selectedEntry])
   const tone = scoreTone(analysis?.riskScore || 0)
   const selectedImages = selectedEntry?.images || (selectedEntry?.image ? [selectedEntry.image] : [])
   const previewCount = previews.length
   const visibleConditionTitle = conditionTitle(visibleResult)
   const visibleConditionDetail = conditionDetail(visibleResult)
+  const comparisonTrend = lesionTrendText(selectedEntry, selectedPreviousEntry)
 
   function updatePatient(field, value) {
     setPatient((current) => ({ ...current, [field]: value }))
@@ -437,6 +478,11 @@ function App() {
                 <span>ควรพบหมอ</span>
                 <strong>{analysis.shouldSeeDentist ? analysis.timeframe : 'ติดตามต่อ'}</strong>
               </div>
+              <div className="metric size-metric">
+                <span>ขนาดแผลโดยประมาณ</span>
+                <strong>{lesionSizeText(analysis)}</strong>
+                <small>{confidenceText(analysis.lesionSizeConfidence)}</small>
+              </div>
             </div>
           )}
 
@@ -503,6 +549,67 @@ function App() {
           ) : (
             <div className="empty-timeline">ยังไม่มีประวัติรายวัน กดตรวจรูปแรกเพื่อเริ่มติดตาม</div>
           )}
+
+          {selectedEntry && (
+            <div className="comparison-panel">
+              <div className="comparison-header">
+                <div className="section-title">
+                  <Ruler size={20} />
+                  <h3>เทียบขนาดแผลรายวัน</h3>
+                </div>
+                <div className="zoom-tools">
+                  <button type="button" onClick={() => setCompareZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))}>
+                    <ZoomOut size={18} />
+                  </button>
+                  <input
+                    aria-label="ซูมภาพเปรียบเทียบ"
+                    type="range"
+                    min="1"
+                    max="4"
+                    step="0.1"
+                    value={compareZoom}
+                    onChange={(event) => setCompareZoom(Number(event.target.value))}
+                  />
+                  <button type="button" onClick={() => setCompareZoom((value) => Math.min(4, Number((value + 0.25).toFixed(2))))}>
+                    <ZoomIn size={18} />
+                  </button>
+                  <strong>{compareZoom.toFixed(1)}x</strong>
+                </div>
+              </div>
+
+              <div className="comparison-summary">
+                <strong>{comparisonTrend}</strong>
+                <span>{selectedEntry.result.lesionSizeNote || 'เป็นค่าประมาณจากภาพถ่าย ควรถ่ายมุมเดิมและมีวัตถุอ้างอิงเพื่อเพิ่มความแม่นยำ'}</span>
+              </div>
+
+              <div className="comparison-grid">
+                <figure>
+                  <figcaption>{selectedPreviousEntry ? selectedPreviousEntry.day : 'วันก่อนหน้า'} <span>{selectedPreviousEntry ? lesionSizeText(selectedPreviousEntry.result) : 'ยังไม่มีข้อมูล'}</span></figcaption>
+                  {selectedPreviousEntry ? (
+                    <div className="zoom-frame">
+                      <img
+                        src={selectedPreviousEntry.image}
+                        alt={`เปรียบเทียบรูปช่องปาก ${selectedPreviousEntry.day}`}
+                        style={{ transform: `scale(${compareZoom})` }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="zoom-empty">ตรวจเพิ่มอีก 1 วันเพื่อเทียบ Day 1 / Day 2</div>
+                  )}
+                </figure>
+                <figure>
+                  <figcaption>{selectedEntry.day} <span>{lesionSizeText(selectedEntry.result)}</span></figcaption>
+                  <div className="zoom-frame">
+                    <img
+                      src={selectedEntry.image}
+                      alt={`เปรียบเทียบรูปช่องปาก ${selectedEntry.day}`}
+                      style={{ transform: `scale(${compareZoom})` }}
+                    />
+                  </div>
+                </figure>
+              </div>
+            </div>
+          )}
         </section>
 
         <aside className="doctor-panel" aria-label="สรุปสำหรับทันตแพทย์">
@@ -541,6 +648,13 @@ function App() {
                 <div>
                   <dt>ความเร่งด่วน</dt>
                   <dd>{selectedEntry.result.timeframe}</dd>
+                </div>
+                <div>
+                  <dt>ขนาดแผล</dt>
+                  <dd>
+                    <strong>{lesionSizeText(selectedEntry.result)}</strong>
+                    <span>{confidenceText(selectedEntry.result.lesionSizeConfidence)}</span>
+                  </dd>
                 </div>
               </dl>
               <blockquote>{selectedEntry.result.doctorSummary}</blockquote>
@@ -589,6 +703,8 @@ function App() {
               <p><b>โรค/ภาวะที่สงสัย:</b> {conditionTitle(selectedEntry.result)}</p>
               <p><b>รายละเอียด:</b> {conditionDetail(selectedEntry.result)}</p>
               <p><b>คะแนนความเสี่ยง:</b> {selectedEntry.result.riskScore}/100</p>
+              <p><b>ขนาดแผลโดยประมาณ:</b> {lesionSizeText(selectedEntry.result)} ({confidenceText(selectedEntry.result.lesionSizeConfidence)})</p>
+              <p><b>หมายเหตุการวัด:</b> {selectedEntry.result.lesionSizeNote || 'เป็นค่าประมาณจากภาพถ่าย'}</p>
               <p><b>ความรุนแรง:</b> {selectedEntry.result.severity}</p>
               <p><b>ควรพบหมอ:</b> {selectedEntry.result.timeframe}</p>
             </div>
